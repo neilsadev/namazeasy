@@ -20,6 +20,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
   int? surahNumber;
   String? randomVerse;
   String? randomVerseTranslation;
+  String currentPrayer = '';
 
   @override
   void initState() {
@@ -39,6 +40,8 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
       precision: true,
       locationName: 'Asia/Dhaka',
     );
+
+    _determineCurrentPrayer();
     setState(() {});
   }
 
@@ -49,6 +52,25 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     verseNumber = random.verseNumber;
     surahNumber = random.surahNumber;
     setState(() {});
+  }
+
+  void _determineCurrentPrayer() {
+    DateTime now = DateTime.now();
+    if (prayerTimes != null) {
+      if (now.isAfter(prayerTimes!.fajrStartTime!) && now.isBefore(prayerTimes!.sunrise!)) {
+        currentPrayer = 'Fajr';
+      } else if (now.isAfter(prayerTimes!.dhuhrStartTime!) && now.isBefore(prayerTimes!.asrStartTime!)) {
+        currentPrayer = 'Dhuhr';
+      } else if (now.isAfter(prayerTimes!.asrStartTime!) && now.isBefore(prayerTimes!.maghribStartTime!)) {
+        currentPrayer = 'Asr';
+      } else if (now.isAfter(prayerTimes!.maghribStartTime!) && now.isBefore(prayerTimes!.ishaStartTime!)) {
+        currentPrayer = 'Maghrib';
+      } else if (now.isAfter(prayerTimes!.ishaStartTime!)) {
+        currentPrayer = 'Isha';
+      } else {
+        currentPrayer = ''; // Default to none if no current prayer is found
+      }
+    }
   }
 
   String formatTime(DateTime time) {
@@ -75,7 +97,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
       ),
       body: Container(
         decoration: const BoxDecoration(
-          color: Colors.black
+            color: Colors.black
         ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -126,26 +148,31 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                         title: 'Fajr',
                         startTime: formatTime(prayerTimes!.fajrStartTime!),
                         endTime: formatTime(prayerTimes!.sunrise!),
+                        isCurrent: currentPrayer == 'Fajr',
                       ),
                       PrayerTile(
                         title: 'Dhuhr',
                         startTime: formatTime(prayerTimes!.dhuhrStartTime!),
                         endTime: formatTime(prayerTimes!.asrStartTime!),
+                        isCurrent: currentPrayer == 'Dhuhr',
                       ),
                       PrayerTile(
                         title: 'Asr',
                         startTime: formatTime(prayerTimes!.asrStartTime!),
                         endTime: formatTime(prayerTimes!.maghribStartTime!),
+                        isCurrent: currentPrayer == 'Asr',
                       ),
                       PrayerTile(
                         title: 'Maghrib',
                         startTime: formatTime(prayerTimes!.maghribStartTime!),
                         endTime: formatTime(prayerTimes!.ishaStartTime!),
+                        isCurrent: currentPrayer == 'Maghrib',
                       ),
                       PrayerTile(
                         title: 'Isha',
                         startTime: formatTime(prayerTimes!.ishaStartTime!),
                         endTime: 'Midnight',
+                        isCurrent: currentPrayer == 'Isha',
                       ),
                     ],
                   ),
@@ -162,11 +189,13 @@ class PrayerTile extends StatelessWidget {
   final String title;
   final String startTime;
   final String endTime;
+  final bool isCurrent; // Added to indicate if it is the current prayer
 
   const PrayerTile({
     required this.title,
     required this.startTime,
     required this.endTime,
+    this.isCurrent = false,
   });
 
   @override
@@ -177,6 +206,7 @@ class PrayerTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: isCurrent ? BorderSide(color: Colors.deepOrange, width: 3) : BorderSide.none, // Golden border for the current prayer
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
