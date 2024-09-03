@@ -35,33 +35,41 @@ class _QiblahScreenState extends State<QiblahScreen> with SingleTickerProviderSt
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Container(alignment: Alignment.center, child: const CircularProgressIndicator(color: Colors.white,));
             }
-
             final qiblahDirection = snapshot.data;
-            animation = Tween(begin: begin, end: (qiblahDirection!.qiblah * (pi / 180) * -1)).animate(_animationController!);
-            begin = (qiblahDirection.qiblah * (pi / 180) * -1);
-            _animationController!.forward(from: 0);
+            print(snapshot.connectionState);
+            if (qiblahDirection == null) {
+              return SizedBox();
+            } else {
+              try {
+                animation = Tween(begin: begin, end: (qiblahDirection!.qiblah * (pi / 180) * -1)).animate(_animationController!);
+                begin = (qiblahDirection.qiblah * (pi / 180) * -1);
+                _animationController!.forward(from: 0);
+              } catch (e) {
+                print(e);
+              }
+              return Center(
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "${qiblahDirection.direction.toInt()}°",
+                        style: const TextStyle(color: Colors.white, fontSize: 24),
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      SizedBox(
+                          height: 300,
+                          child: AnimatedBuilder(
+                            animation: animation!,
+                            builder: (context, child) => Transform.rotate(
+                                angle: animation!.value,
+                                child: Image.asset('assets/qibla.png')),
+                          ))
+                    ]),
+              );
+            }
 
-            return Center(
-              child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "${qiblahDirection.direction.toInt()}°",
-                      style: const TextStyle(color: Colors.white, fontSize: 24),
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    SizedBox(
-                        height: 300,
-                        child: AnimatedBuilder(
-                          animation: animation!,
-                          builder: (context, child) => Transform.rotate(
-                              angle: animation!.value,
-                              child: Image.asset('assets/qibla.png')),
-                        ))
-                  ]),
-            );
           },
         ),
       ),
