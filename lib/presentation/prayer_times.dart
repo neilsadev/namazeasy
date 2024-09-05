@@ -1,8 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:namazeasy/presentation/qiblah_compass.dart';
 import 'package:prayers_times/prayers_times.dart';
-import 'package:intl/intl.dart';
 import 'package:quran/quran.dart';
 
 class PrayerTimesScreen extends StatefulWidget {
@@ -31,8 +30,10 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
 
   void _fetchPrayerTimes() {
     final coordinates = Coordinates(23.8103, 90.4125); // Dhaka, Bangladesh
-    PrayerCalculationParameters params = PrayerCalculationMethod.muslimWorldLeague();
-    params.madhab = selectedMadhab == 'Hanafi' ? PrayerMadhab.hanafi : PrayerMadhab.shafi;
+    PrayerCalculationParameters params =
+        PrayerCalculationMethod.muslimWorldLeague();
+    params.madhab =
+        selectedMadhab == 'Hanafi' ? PrayerMadhab.hanafi : PrayerMadhab.shafi;
 
     prayerTimes = PrayerTimes(
       coordinates: coordinates,
@@ -57,13 +58,17 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
   void _determineCurrentPrayer() {
     DateTime now = DateTime.now();
     if (prayerTimes != null) {
-      if (now.isAfter(prayerTimes!.fajrStartTime!) && now.isBefore(prayerTimes!.sunrise!)) {
+      if (now.isAfter(prayerTimes!.fajrStartTime!) &&
+          now.isBefore(prayerTimes!.sunrise!)) {
         currentPrayer = 'Fajr';
-      } else if (now.isAfter(prayerTimes!.dhuhrStartTime!) && now.isBefore(prayerTimes!.asrStartTime!)) {
+      } else if (now.isAfter(prayerTimes!.dhuhrStartTime!) &&
+          now.isBefore(prayerTimes!.asrStartTime!)) {
         currentPrayer = 'Dhuhr';
-      } else if (now.isAfter(prayerTimes!.asrStartTime!) && now.isBefore(prayerTimes!.maghribStartTime!)) {
+      } else if (now.isAfter(prayerTimes!.asrStartTime!) &&
+          now.isBefore(prayerTimes!.maghribStartTime!)) {
         currentPrayer = 'Asr';
-      } else if (now.isAfter(prayerTimes!.maghribStartTime!) && now.isBefore(prayerTimes!.ishaStartTime!)) {
+      } else if (now.isAfter(prayerTimes!.maghribStartTime!) &&
+          now.isBefore(prayerTimes!.ishaStartTime!)) {
         currentPrayer = 'Maghrib';
       } else if (now.isAfter(prayerTimes!.ishaStartTime!)) {
         currentPrayer = 'Isha';
@@ -81,24 +86,33 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Prayer Times', style: TextStyle(color: Colors.white,),),
+        title: const Text(
+          'Prayer Times',
+          style: TextStyle(
+            color: Colors.white,
+          ),
+        ),
         backgroundColor: Colors.black,
         elevation: 0,
         actions: [
           GestureDetector(
-            onTap: (){
-              Navigator.push(context, MaterialPageRoute(builder: (context) => QiblahScreen(),
-              ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => QiblahScreen(),
+                ),
               );
             },
-            child: Icon(Icons.pin_drop, color: Colors.white,),
+            child: Icon(
+              Icons.pin_drop,
+              color: Colors.white,
+            ),
           ),
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
-            color: Colors.black
-        ),
+        decoration: const BoxDecoration(color: Colors.black),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -106,7 +120,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
             children: [
               if (randomVerse != null) // Display the random verse if available
                 GestureDetector(
-                  onTap: (){
+                  onTap: () {
                     _fetchRandomVerse();
                   },
                   child: Container(
@@ -128,12 +142,16 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                       children: [
                         Text(
                           randomVerse!,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "${randomVerseTranslation!} ( $verseNumber:$surahNumber )" ,
-                          style: const TextStyle(fontSize: 14, color: Colors.black87),
+                          "${randomVerseTranslation!} ( $verseNumber:$surahNumber )",
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.black87),
                         ),
                       ],
                     ),
@@ -206,11 +224,14 @@ class PrayerTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: isCurrent ? BorderSide(color: Colors.deepOrange, width: 3) : BorderSide.none, // Golden border for the current prayer
+        side: isCurrent
+            ? BorderSide(color: Colors.deepOrange, width: 3)
+            : BorderSide.none, // Golden border for the current prayer
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(title,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         subtitle: Text(
           'Start: $startTime\nEnd: $endTime',
           style: TextStyle(fontSize: 16, color: Colors.black87),
