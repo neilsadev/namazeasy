@@ -1,8 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:intl/intl.dart';
-import 'package:namazeasy/presentation/qiblah_compass.dart';
 import 'package:prayers_times/prayers_times.dart';
 import 'package:quran/quran.dart';
+
+import 'compass_view/loading_indicator.dart';
+import 'compass_view/qiblah_compass.dart';
+import 'compass_view/qiblah_maps.dart';
 
 class PrayerTimesScreen extends StatefulWidget {
   const PrayerTimesScreen({super.key});
@@ -11,7 +17,12 @@ class PrayerTimesScreen extends StatefulWidget {
   _PrayerTimesScreenState createState() => _PrayerTimesScreenState();
 }
 
-class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
+Animation<double>? animation;
+AnimationController? _animationController;
+double begin = 0.0;
+
+class _PrayerTimesScreenState extends State<PrayerTimesScreen>
+    with SingleTickerProviderStateMixin {
   final List<String> madhabs = ['Hanafi', 'Shafi'];
   String selectedMadhab = 'Hanafi';
   PrayerTimes? prayerTimes;
@@ -21,11 +32,28 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
   String? randomVerseTranslation;
   String currentPrayer = '';
 
+  final _deviceSupport = FlutterQiblah.androidDeviceSensorSupport();
+
   @override
   void initState() {
     super.initState();
     _fetchPrayerTimes();
     _fetchRandomVerse();
+    _animationController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 500));
+    animation = Tween(begin: 0.0, end: 0.0).animate(_animationController!);
+  }
+
+  final _locationStreamController =
+      StreamController<LocationStatus>.broadcast();
+
+  Stream<LocationStatus> get stream => _locationStreamController.stream;
+
+  @override
+  void dispose() {
+    _locationStreamController.close();
+    FlutterQiblah().dispose();
+    super.dispose();
   }
 
   void _fetchPrayerTimes() {
@@ -86,28 +114,52 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: FutureBuilder(
+          future: _deviceSupport,
+          builder: (_, AsyncSnapshot<bool?> snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return LoadingIndicator();
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Text("Error: ${snapshot.error.toString()}"),
+              );
+            }
+
+            if (snapshot.data!) {
+              return QiblahCompass();
+            } else {
+              return QiblahMaps();
+            }
+          },
+        ),
         title: const Text(
           'Prayer Times',
           style: TextStyle(
             color: Colors.white,
           ),
         ),
+        centerTitle: true,
         backgroundColor: Colors.black,
         elevation: 0,
         actions: [
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => QiblahScreen(),
-                ),
-              );
-            },
-            child: Icon(
-              Icons.pin_drop,
+          PopupMenuButton<String>(
+            icon: const Icon(
+              Icons.settings,
               color: Colors.white,
             ),
+            onSelected: (value) {
+              // Handle the selection here
+              print('Selected: $value');
+            },
+            itemBuilder: (BuildContext context) {
+              return {'Theme', 'Notification', 'Sound'}.map((String choice) {
+                return PopupMenuItem<String>(
+                  value: choice,
+                  child: Text(choice),
+                );
+              }).toList();
+            },
           ),
         ],
       ),
