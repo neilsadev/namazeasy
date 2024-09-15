@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
+import 'package:intl/intl.dart';
 import 'package:prayers_times/prayers_times.dart';
 import 'package:quran/quran.dart';
 import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
@@ -143,6 +144,9 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
   }
 
   double? notifyValue;
+  String formatTime(DateTime time) {
+    return DateFormat('hh:mm a').format(time); // Format time as 08:45 PM
+  }
 
   String getRemainingTime(DateTime endTime) {
     // Calculate the difference between end time and now
@@ -177,253 +181,318 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        leading: FutureBuilder(
-          future: _deviceSupport,
-          builder: (_, AsyncSnapshot<bool?> snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return LoadingIndicator();
-            }
-            if (snapshot.hasError) {
-              return Center(
-                child: Icon(Icons.error),
-              );
-            }
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 8.0),
+            child: FutureBuilder(
+              future: _deviceSupport,
+              builder: (_, AsyncSnapshot<bool?> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return LoadingIndicator();
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Icon(Icons.error),
+                  );
+                }
 
-            if (snapshot.data!) {
-              return QiblahCompass();
-            } else {
-              return QiblahMaps();
-            }
-          },
-        ),
-        title: Text(
-          "Salat al-$currentPrayer",
-          style: TextStyle(
-            color: Color(0xFF3CDAF7),
-            fontSize: 30,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.black,
-        elevation: 0,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(
-              Icons.settings,
-              color: Colors.white,
+                if (snapshot.data!) {
+                  return QiblahCompass();
+                } else {
+                  return QiblahMaps();
+                }
+              },
             ),
-            onSelected: (value) {
-              // Handle the selection here
-              print('Selected: $value');
-            },
-            itemBuilder: (BuildContext context) {
-              return {'Theme', 'Notification', 'Sound'}.map((String choice) {
-                return PopupMenuItem<String>(
-                  value: choice,
-                  child: Text(choice),
-                );
-              }).toList();
-            },
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          newDashboardWidget(),
-          Container(
-            decoration: const BoxDecoration(color: Colors.black),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (randomVerse !=
-                      null) // Display the random verse if available
-                    GestureDetector(
-                      onTap: () {
-                        _fetchRandomVerse();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(12.0),
-                        margin: const EdgeInsets.only(bottom: 16.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              randomVerse!,
-                              style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "${randomVerseTranslation!} ( $verseNumber:$surahNumber )",
-                              style: const TextStyle(
-                                  fontSize: 14, color: Colors.black87),
-                            ),
-                          ],
-                        ),
+          title: Text(
+            "Salat al-$currentPrayer",
+            style: TextStyle(
+              color: Color(0xFF3CDAF7),
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.black,
+          elevation: 0,
+          actions: [
+            PopupMenuButton<String>(
+              icon: const Icon(
+                Icons.settings,
+                color: Colors.white,
+              ),
+              onSelected: (value) {
+                // Handle the selection here
+                print('Selected: $value');
+              },
+              itemBuilder: (BuildContext context) {
+                return {'Theme', 'Notification', 'Sound'}.map((String choice) {
+                  return PopupMenuItem<String>(
+                    value: choice,
+                    child: Text(choice),
+                  );
+                }).toList();
+              },
+            ),
+          ],
+        ),
+        body: newDashboardWidget()
+
+        // Column(
+        //   children: [
+        //
+        //     Container(
+        //       decoration: const BoxDecoration(color: Colors.black),
+        //       child: Padding(
+        //         padding: const EdgeInsets.all(16.0),
+        //         child: Column(
+        //           crossAxisAlignment: CrossAxisAlignment.start,
+        //           children: [
+        //             if (randomVerse !=
+        //                 null) // Display the random verse if available
+        //               GestureDetector(
+        //                 onTap: () {
+        //                   _fetchRandomVerse();
+        //                 },
+        //                 child: Container(
+        //                   padding: const EdgeInsets.all(12.0),
+        //                   margin: const EdgeInsets.only(bottom: 16.0),
+        //                   decoration: BoxDecoration(
+        //                     color: Colors.white.withOpacity(0.9),
+        //                     borderRadius: BorderRadius.circular(12),
+        //                     boxShadow: [
+        //                       BoxShadow(
+        //                         color: Colors.black.withOpacity(0.1),
+        //                         blurRadius: 8,
+        //                         spreadRadius: 1,
+        //                       ),
+        //                     ],
+        //                   ),
+        //                   child: Column(
+        //                     crossAxisAlignment: CrossAxisAlignment.start,
+        //                     children: [
+        //                       Text(
+        //                         randomVerse!,
+        //                         style: const TextStyle(
+        //                             fontSize: 16,
+        //                             fontWeight: FontWeight.bold,
+        //                             color: Colors.black),
+        //                       ),
+        //                       const SizedBox(height: 8),
+        //                       Text(
+        //                         "${randomVerseTranslation!} ( $verseNumber:$surahNumber )",
+        //                         style: const TextStyle(
+        //                             fontSize: 14, color: Colors.black87),
+        //                       ),
+        //                     ],
+        //                   ),
+        //                 ),
+        //               ),
+        //             if (prayerTimes != null)
+        //               Expanded(
+        //                 child: ListView(
+        //                   padding: EdgeInsets.zero,
+        //                   children: [
+        //                     PrayerTile(
+        //                       title: 'Fajr',
+        //                       startTime: formatTime(prayerTimes!.fajrStartTime!),
+        //                       endTime: formatTime(prayerTimes!.sunrise!),
+        //                       isCurrent: currentPrayer == 'Fajr',
+        //                     ),
+        //                     PrayerTile(
+        //                       title: 'Dhuhr',
+        //                       startTime: formatTime(prayerTimes!.dhuhrStartTime!),
+        //                       endTime: formatTime(prayerTimes!.asrStartTime!),
+        //                       isCurrent: currentPrayer == 'Dhuhr',
+        //                     ),
+        //                     PrayerTile(
+        //                       title: 'Asr',
+        //                       startTime: formatTime(prayerTimes!.asrStartTime!),
+        //                       endTime: formatTime(prayerTimes!.maghribStartTime!),
+        //                       isCurrent: currentPrayer == 'Asr',
+        //                     ),
+        //                     PrayerTile(
+        //                       title: 'Maghrib',
+        //                       startTime:
+        //                           formatTime(prayerTimes!.maghribStartTime!),
+        //                       endTime: formatTime(prayerTimes!.ishaStartTime!),
+        //                       isCurrent: currentPrayer == 'Maghrib',
+        //                     ),
+        //                     PrayerTile(
+        //                       title: 'Isha',
+        //                       startTime: formatTime(prayerTimes!.ishaStartTime!),
+        //                       endTime: 'Midnight',
+        //                       isCurrent: currentPrayer == 'Isha',
+        //                     ),
+        //                   ],
+        //                 ),
+        //               ),
+        //           ],
+        //         ),
+        //       ),
+        //     ),
+        //   ],
+        // ),
+        );
+  }
+
+  Widget newDashboardWidget() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 15.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 20,
+            ),
+            Center(
+              child: CircleAvatar(
+                backgroundImage: const AssetImage("assets/clock_bg.png"),
+                radius: 150,
+                child: SimpleCircularProgressBar(
+                  size: 350,
+                  maxValue: getTimeDifferenceInHours(
+                          currentPrayerStartTime, currentPrayerEndTime)
+                      .toDouble(),
+                  valueNotifier: ValueNotifier(notifyValue!),
+                  progressStrokeWidth: 20,
+                  backStrokeWidth: 5,
+                  mergeMode: true,
+                  fullProgressColor: Colors.amber,
+                  progressColors: const [
+                    Colors.blue,
+                    Colors.green,
+                    Colors.amberAccent,
+                    Colors.redAccent,
+                  ],
+                  backColor: Colors.blueGrey,
+                  onGetText: (double value) {
+                    return Text(
+                      getRemainingTime(currentPrayerEndTime),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
                       ),
-                    ),
-                  if (prayerTimes != null)
-                    Expanded(
-                      child: ListView(
-                        padding: EdgeInsets.zero,
-                        children: [
-                          PrayerTile(
-                            title: 'Fajr',
-                            startTime: formatTime(prayerTimes!.fajrStartTime!),
-                            endTime: formatTime(prayerTimes!.sunrise!),
-                            isCurrent: currentPrayer == 'Fajr',
-                          ),
-                          PrayerTile(
-                            title: 'Dhuhr',
-                            startTime: formatTime(prayerTimes!.dhuhrStartTime!),
-                            endTime: formatTime(prayerTimes!.asrStartTime!),
-                            isCurrent: currentPrayer == 'Dhuhr',
-                          ),
-                          PrayerTile(
-                            title: 'Asr',
-                            startTime: formatTime(prayerTimes!.asrStartTime!),
-                            endTime: formatTime(prayerTimes!.maghribStartTime!),
-                            isCurrent: currentPrayer == 'Asr',
-                          ),
-                          PrayerTile(
-                            title: 'Maghrib',
-                            startTime:
-                                formatTime(prayerTimes!.maghribStartTime!),
-                            endTime: formatTime(prayerTimes!.ishaStartTime!),
-                            isCurrent: currentPrayer == 'Maghrib',
-                          ),
-                          PrayerTile(
-                            title: 'Isha',
-                            startTime: formatTime(prayerTimes!.ishaStartTime!),
-                            endTime: 'Midnight',
-                            isCurrent: currentPrayer == 'Isha',
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
+                      textAlign: TextAlign.center,
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+            SizedBox(
+              height: 10,
+            ),
+            titleWidget(
+                titleLeft: "Verses of the Quran", titleRight: "آيات القرآن"),
+            if (randomVerse != null) // Display the random verse if available
+              GestureDetector(
+                onTap: () {
+                  _fetchRandomVerse();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12.0),
+                  margin: const EdgeInsets.only(bottom: 16.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        randomVerse!,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "${randomVerseTranslation!} ( $verseNumber:$surahNumber )",
+                        style: const TextStyle(
+                            fontSize: 14, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            titleWidget(
+                titleLeft: "Al-Hadith Al-Sharif", titleRight: "الحديث الشريف"),
+            if (randomVerse != null) // Display the random verse if available
+              GestureDetector(
+                onTap: () {
+                  _fetchRandomVerse();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12.0),
+                  margin: const EdgeInsets.only(bottom: 16.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        randomVerse!,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "${randomVerseTranslation!} ( $verseNumber:$surahNumber )",
+                        style: const TextStyle(
+                            fontSize: 14, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget newDashboardWidget() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          height: 20,
-        ),
-        Center(
-          child: CircleAvatar(
-            backgroundImage: const AssetImage("assets/clock_bg.png"),
-            radius: 150,
-            child: SimpleCircularProgressBar(
-              size: 350,
-              maxValue: getTimeDifferenceInHours(
-                      currentPrayerStartTime, currentPrayerEndTime)
-                  .toDouble(),
-              valueNotifier: ValueNotifier(notifyValue!),
-              progressStrokeWidth: 20,
-              backStrokeWidth: 5,
-              mergeMode: true,
-              fullProgressColor: Colors.amber,
-              progressColors: const [
-                Colors.blue,
-                Colors.green,
-                Colors.amberAccent,
-                Colors.redAccent,
-              ],
-              backColor: Colors.blueGrey,
-              onGetText: (double value) {
-                return Text(
-                  getRemainingTime(currentPrayerEndTime),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                  textAlign: TextAlign.center,
-                );
-              },
-            ),
+  Widget titleWidget({required String titleLeft, required String titleRight}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            titleLeft,
+            style: TextStyle(
+                color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500),
           ),
-        ),
-        Container(
-          width: 300.0,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Color(0xFF1F2633),
-            borderRadius: BorderRadius.circular(25.0),
+          Text(
+            titleRight,
+            style: TextStyle(
+                color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              "Above Sleep Goal (>=8) 😇",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _timeWidget(
-              'BedTime',
-              _inBedTime,
-              Icon(
-                Icons.power_settings_new_outlined,
-                size: 25.0,
-                color: Color(0xFF3CDAF7),
-              ),
-            ),
-            _timeWidget(
-              'WakeUp',
-              _outBedTime,
-              Icon(
-                Icons.notifications_active_outlined,
-                size: 25.0,
-                color: Color(0xFF3CDAF7),
-              ),
-            ),
-          ],
-        ),
-        Text(
-          validRange == true
-              ? "Working hours ${intl.NumberFormat('00').format(_disabledInitTime.h)}:${intl.NumberFormat('00').format(_disabledInitTime.m)} to ${intl.NumberFormat('00').format(_disabledEndTime.h)}:${intl.NumberFormat('00').format(_disabledEndTime.m)}"
-              : "Please schedule according working time!",
-          style: TextStyle(
-            fontSize: 16.0,
-            color: validRange == true ? Colors.white : Colors.red,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
