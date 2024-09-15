@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:intl/intl.dart';
 import 'package:prayers_times/prayers_times.dart';
+import 'package:progressive_time_picker/progressive_time_picker.dart';
 import 'package:quran/quran.dart';
 
 import 'compass_view/loading_indicator.dart';
@@ -23,6 +25,22 @@ double begin = 0.0;
 
 class _PrayerTimesScreenState extends State<PrayerTimesScreen>
     with SingleTickerProviderStateMixin {
+  //For New
+  ClockTimeFormat _clockTimeFormat = ClockTimeFormat.twentyFourHours;
+  ClockIncrementTimeFormat _clockIncrementTimeFormat =
+      ClockIncrementTimeFormat.fiveMin;
+
+  PickedTime _inBedTime = PickedTime(h: 0, m: 0);
+  PickedTime _outBedTime = PickedTime(h: 8, m: 0);
+  PickedTime _intervalBedTime = PickedTime(h: 0, m: 0);
+
+  PickedTime _disabledInitTime = PickedTime(h: 12, m: 0);
+  PickedTime _disabledEndTime = PickedTime(h: 20, m: 0);
+
+  double _sleepGoal = 8.0;
+  bool _isSleepGoal = false;
+  bool? validRange = true;
+
   final List<String> madhabs = ['Hanafi', 'Shafi'];
   String selectedMadhab = 'Hanafi';
   PrayerTimes? prayerTimes;
@@ -37,6 +55,16 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
   @override
   void initState() {
     super.initState();
+
+    //New UI
+    _isSleepGoal = (_sleepGoal >= 8.0) ? true : false;
+    _intervalBedTime = formatIntervalTime(
+      init: _inBedTime,
+      end: _outBedTime,
+      clockTimeFormat: _clockTimeFormat,
+      clockIncrementTimeFormat: _clockIncrementTimeFormat,
+    );
+
     _fetchPrayerTimes();
     _fetchRandomVerse();
     _animationController = AnimationController(
@@ -85,6 +113,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
 
   void _determineCurrentPrayer() {
     DateTime now = DateTime.now();
+    print("currentPrayer: ${prayerTimes!.fajrEndTime}");
     if (prayerTimes != null) {
       if (now.isAfter(prayerTimes!.fajrStartTime!) &&
           now.isBefore(prayerTimes!.sunrise!)) {
@@ -101,9 +130,11 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
       } else if (now.isAfter(prayerTimes!.ishaStartTime!)) {
         currentPrayer = 'Isha';
       } else {
-        currentPrayer = ''; // Default to none if no current prayer is found
+        currentPrayer = 'Duha'; // Default to none if no current prayer is found
       }
     }
+
+    print("currentPrayer: $currentPrayer");
   }
 
   String formatTime(DateTime time) {
@@ -113,6 +144,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: FutureBuilder(
           future: _deviceSupport,
@@ -122,7 +154,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
             }
             if (snapshot.hasError) {
               return Center(
-                child: Text("Error: ${snapshot.error.toString()}"),
+                child: Icon(Icons.error),
               );
             }
 
@@ -133,10 +165,12 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
             }
           },
         ),
-        title: const Text(
-          'Prayer Times',
+        title: Text(
+          "Salat al-$currentPrayer",
           style: TextStyle(
-            color: Colors.white,
+            color: Color(0xFF3CDAF7),
+            fontSize: 30,
+            fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
@@ -163,92 +197,295 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(color: Colors.black),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (randomVerse != null) // Display the random verse if available
-                GestureDetector(
-                  onTap: () {
-                    _fetchRandomVerse();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(12.0),
-                    margin: const EdgeInsets.only(bottom: 16.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          randomVerse!,
-                          style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "${randomVerseTranslation!} ( $verseNumber:$surahNumber )",
-                          style: const TextStyle(
-                              fontSize: 14, color: Colors.black87),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              if (prayerTimes != null)
-                Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    children: [
-                      PrayerTile(
-                        title: 'Fajr',
-                        startTime: formatTime(prayerTimes!.fajrStartTime!),
-                        endTime: formatTime(prayerTimes!.sunrise!),
-                        isCurrent: currentPrayer == 'Fajr',
-                      ),
-                      PrayerTile(
-                        title: 'Dhuhr',
-                        startTime: formatTime(prayerTimes!.dhuhrStartTime!),
-                        endTime: formatTime(prayerTimes!.asrStartTime!),
-                        isCurrent: currentPrayer == 'Dhuhr',
-                      ),
-                      PrayerTile(
-                        title: 'Asr',
-                        startTime: formatTime(prayerTimes!.asrStartTime!),
-                        endTime: formatTime(prayerTimes!.maghribStartTime!),
-                        isCurrent: currentPrayer == 'Asr',
-                      ),
-                      PrayerTile(
-                        title: 'Maghrib',
-                        startTime: formatTime(prayerTimes!.maghribStartTime!),
-                        endTime: formatTime(prayerTimes!.ishaStartTime!),
-                        isCurrent: currentPrayer == 'Maghrib',
-                      ),
-                      PrayerTile(
-                        title: 'Isha',
-                        startTime: formatTime(prayerTimes!.ishaStartTime!),
-                        endTime: 'Midnight',
-                        isCurrent: currentPrayer == 'Isha',
-                      ),
-                    ],
-                  ),
-                ),
-            ],
+      body: newDashboardWidget(),
+
+      // Container(
+      //   decoration: const BoxDecoration(color: Colors.black),
+      //   child: Padding(
+      //     padding: const EdgeInsets.all(16.0),
+      //     child:
+      //
+      //     Column(
+      //       crossAxisAlignment: CrossAxisAlignment.start,
+      //       children: [
+      //         if (randomVerse != null) // Display the random verse if available
+      //           GestureDetector(
+      //             onTap: () {
+      //               _fetchRandomVerse();
+      //             },
+      //             child: Container(
+      //               padding: const EdgeInsets.all(12.0),
+      //               margin: const EdgeInsets.only(bottom: 16.0),
+      //               decoration: BoxDecoration(
+      //                 color: Colors.white.withOpacity(0.9),
+      //                 borderRadius: BorderRadius.circular(12),
+      //                 boxShadow: [
+      //                   BoxShadow(
+      //                     color: Colors.black.withOpacity(0.1),
+      //                     blurRadius: 8,
+      //                     spreadRadius: 1,
+      //                   ),
+      //                 ],
+      //               ),
+      //               child: Column(
+      //                 crossAxisAlignment: CrossAxisAlignment.start,
+      //                 children: [
+      //                   Text(
+      //                     randomVerse!,
+      //                     style: const TextStyle(
+      //                         fontSize: 16,
+      //                         fontWeight: FontWeight.bold,
+      //                         color: Colors.black),
+      //                   ),
+      //                   const SizedBox(height: 8),
+      //                   Text(
+      //                     "${randomVerseTranslation!} ( $verseNumber:$surahNumber )",
+      //                     style: const TextStyle(
+      //                         fontSize: 14, color: Colors.black87),
+      //                   ),
+      //                 ],
+      //               ),
+      //             ),
+      //           ),
+      //         if (prayerTimes != null)
+      //           Expanded(
+      //             child: ListView(
+      //               padding: EdgeInsets.zero,
+      //               children: [
+      //                 PrayerTile(
+      //                   title: 'Fajr',
+      //                   startTime: formatTime(prayerTimes!.fajrStartTime!),
+      //                   endTime: formatTime(prayerTimes!.sunrise!),
+      //                   isCurrent: currentPrayer == 'Fajr',
+      //                 ),
+      //                 PrayerTile(
+      //                   title: 'Dhuhr',
+      //                   startTime: formatTime(prayerTimes!.dhuhrStartTime!),
+      //                   endTime: formatTime(prayerTimes!.asrStartTime!),
+      //                   isCurrent: currentPrayer == 'Dhuhr',
+      //                 ),
+      //                 PrayerTile(
+      //                   title: 'Asr',
+      //                   startTime: formatTime(prayerTimes!.asrStartTime!),
+      //                   endTime: formatTime(prayerTimes!.maghribStartTime!),
+      //                   isCurrent: currentPrayer == 'Asr',
+      //                 ),
+      //                 PrayerTile(
+      //                   title: 'Maghrib',
+      //                   startTime: formatTime(prayerTimes!.maghribStartTime!),
+      //                   endTime: formatTime(prayerTimes!.ishaStartTime!),
+      //                   isCurrent: currentPrayer == 'Maghrib',
+      //                 ),
+      //                 PrayerTile(
+      //                   title: 'Isha',
+      //                   startTime: formatTime(prayerTimes!.ishaStartTime!),
+      //                   endTime: 'Midnight',
+      //                   isCurrent: currentPrayer == 'Isha',
+      //                 ),
+      //               ],
+      //             ),
+      //           ),
+      //       ],
+      //     ),
+      //   ),
+      // ),
+    );
+  }
+
+  Widget newDashboardWidget() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        TimePicker(
+          initTime: _inBedTime,
+          endTime: _outBedTime,
+          disabledRange: DisabledRange(
+            initTime: _disabledInitTime,
+            endTime: _disabledEndTime,
+            disabledRangeColor: Colors.grey,
+            errorColor: Colors.red,
           ),
+          height: 260.0,
+          width: 260.0,
+          onSelectionChange: _updateLabels,
+          onSelectionEnd: (start, end, isDisableRange) => print(
+              'onSelectionEnd => init : ${start.h}:${start.m}, end : ${end.h}:${end.m}, isDisableRange: $isDisableRange'),
+          primarySectors: _clockTimeFormat.value,
+          secondarySectors: _clockTimeFormat.value * 2,
+          decoration: TimePickerDecoration(
+            baseColor: Color(0xFF1F2633),
+            pickerBaseCirclePadding: 15.0,
+            sweepDecoration: TimePickerSweepDecoration(
+              pickerStrokeWidth: 30.0,
+              pickerColor: _isSleepGoal ? Color(0xFF3CDAF7) : Colors.white,
+              showConnector: true,
+            ),
+            initHandlerDecoration: TimePickerHandlerDecoration(
+              color: Color(0xFF141925),
+              shape: BoxShape.circle,
+              radius: 12.0,
+              icon: Icon(
+                Icons.power_settings_new_outlined,
+                size: 20.0,
+                color: Color(0xFF3CDAF7),
+              ),
+            ),
+            endHandlerDecoration: TimePickerHandlerDecoration(
+              color: Color(0xFF141925),
+              shape: BoxShape.circle,
+              radius: 12.0,
+              icon: Icon(
+                Icons.notifications_active_outlined,
+                size: 20.0,
+                color: Color(0xFF3CDAF7),
+              ),
+            ),
+            primarySectorsDecoration: TimePickerSectorDecoration(
+              color: Colors.white,
+              width: 1.0,
+              size: 4.0,
+              radiusPadding: 25.0,
+            ),
+            secondarySectorsDecoration: TimePickerSectorDecoration(
+              color: Color(0xFF3CDAF7),
+              width: 1.0,
+              size: 2.0,
+              radiusPadding: 25.0,
+            ),
+            clockNumberDecoration: TimePickerClockNumberDecoration(
+              defaultTextColor: Colors.white,
+              defaultFontSize: 12.0,
+              scaleFactor: 2.0,
+              showNumberIndicators: true,
+              clockTimeFormat: _clockTimeFormat,
+              clockIncrementTimeFormat: _clockIncrementTimeFormat,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(62.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '${intl.NumberFormat('00').format(_intervalBedTime.h)}Hr ${intl.NumberFormat('00').format(_intervalBedTime.m)}Min',
+                  style: TextStyle(
+                    fontSize: 14.0,
+                    color: _isSleepGoal ? Color(0xFF3CDAF7) : Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Container(
+          width: 300.0,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Color(0xFF1F2633),
+            borderRadius: BorderRadius.circular(25.0),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              _isSleepGoal
+                  ? "Above Sleep Goal (>=8) 😇"
+                  : 'below Sleep Goal (<=8) 😴',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _timeWidget(
+              'BedTime',
+              _inBedTime,
+              Icon(
+                Icons.power_settings_new_outlined,
+                size: 25.0,
+                color: Color(0xFF3CDAF7),
+              ),
+            ),
+            _timeWidget(
+              'WakeUp',
+              _outBedTime,
+              Icon(
+                Icons.notifications_active_outlined,
+                size: 25.0,
+                color: Color(0xFF3CDAF7),
+              ),
+            ),
+          ],
+        ),
+        Text(
+          validRange == true
+              ? "Working hours ${intl.NumberFormat('00').format(_disabledInitTime.h)}:${intl.NumberFormat('00').format(_disabledInitTime.m)} to ${intl.NumberFormat('00').format(_disabledEndTime.h)}:${intl.NumberFormat('00').format(_disabledEndTime.m)}"
+              : "Please schedule according working time!",
+          style: TextStyle(
+            fontSize: 16.0,
+            color: validRange == true ? Colors.white : Colors.red,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _updateLabels(PickedTime init, PickedTime end, bool? isDisableRange) {
+    _inBedTime = init;
+    _outBedTime = end;
+    _intervalBedTime = formatIntervalTime(
+      init: _inBedTime,
+      end: _outBedTime,
+      clockTimeFormat: _clockTimeFormat,
+      clockIncrementTimeFormat: _clockIncrementTimeFormat,
+    );
+    _isSleepGoal = validateSleepGoal(
+      inTime: init,
+      outTime: end,
+      sleepGoal: _sleepGoal,
+      clockTimeFormat: _clockTimeFormat,
+      clockIncrementTimeFormat: _clockIncrementTimeFormat,
+    );
+    setState(() {
+      validRange = isDisableRange;
+    });
+  }
+
+  Widget _timeWidget(String title, PickedTime time, Icon icon) {
+    return Container(
+      width: 150.0,
+      decoration: BoxDecoration(
+        color: Color(0xFF1F2633),
+        borderRadius: BorderRadius.circular(25.0),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(25.0),
+        child: Column(
+          children: [
+            Text(
+              '${intl.NumberFormat('00').format(time.h)}:${intl.NumberFormat('00').format(time.m)}',
+              style: TextStyle(
+                color: Color(0xFF3CDAF7),
+                fontSize: 25,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 15),
+            Text(
+              '$title',
+              style: TextStyle(
+                color: Color(0xFF3CDAF7),
+                fontSize: 16,
+              ),
+            ),
+            SizedBox(height: 10),
+            icon,
+          ],
         ),
       ),
     );
