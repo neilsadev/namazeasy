@@ -36,7 +36,6 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
   prayers_times: ^0.0.6
-  progressive_time_picker: ^1.0.1
   intl: ^0.19.0
   simple_circular_progress_bar: ^1.0.2
   quran: ^1.2.9
