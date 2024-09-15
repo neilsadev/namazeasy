@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:intl/intl.dart' as intl;
-import 'package:intl/intl.dart';
 import 'package:prayers_times/prayers_times.dart';
 import 'package:progressive_time_picker/progressive_time_picker.dart';
 import 'package:quran/quran.dart';
+import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
 
 import 'compass_view/loading_indicator.dart';
 import 'compass_view/qiblah_compass.dart';
@@ -34,8 +34,8 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
   PickedTime _outBedTime = PickedTime(h: 8, m: 0);
   PickedTime _intervalBedTime = PickedTime(h: 0, m: 0);
 
-  PickedTime _disabledInitTime = PickedTime(h: 12, m: 0);
-  PickedTime _disabledEndTime = PickedTime(h: 20, m: 0);
+  PickedTime _disabledInitTime = PickedTime(h: 18, m: 0);
+  PickedTime _disabledEndTime = PickedTime(h: 24, m: 0);
 
   double _sleepGoal = 8.0;
   bool _isSleepGoal = false;
@@ -49,13 +49,20 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
   String? randomVerse;
   String? randomVerseTranslation;
   String currentPrayer = '';
+  DateTime currentPrayerStartTime = DateTime.now();
+  DateTime currentPrayerEndTime = DateTime.now();
 
   final _deviceSupport = FlutterQiblah.androidDeviceSensorSupport();
+
+  late Timer _timer;
+  String _remainingTime = "";
+  late ValueNotifier<double> valueNotifier;
 
   @override
   void initState() {
     super.initState();
-
+    valueNotifier = ValueNotifier(0.0);
+    _startTimer();
     //New UI
     _isSleepGoal = (_sleepGoal >= 8.0) ? true : false;
     _intervalBedTime = formatIntervalTime(
@@ -72,6 +79,20 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
     animation = Tween(begin: 0.0, end: 0.0).animate(_animationController!);
   }
 
+  void _startTimer() {
+    // Start a timer that updates the remaining time every second
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        _remainingTime = getRemainingTime(currentPrayerEndTime);
+
+        // Stop the timer when time is up
+        if (_remainingTime == "$currentPrayer 00:00:00") {
+          _timer.cancel();
+        }
+      });
+    });
+  }
+
   final _locationStreamController =
       StreamController<LocationStatus>.broadcast();
 
@@ -80,6 +101,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
   @override
   void dispose() {
     _locationStreamController.close();
+    _timer.cancel();
     FlutterQiblah().dispose();
     super.dispose();
   }
@@ -118,27 +140,58 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
       if (now.isAfter(prayerTimes!.fajrStartTime!) &&
           now.isBefore(prayerTimes!.sunrise!)) {
         currentPrayer = 'Fajr';
+        currentPrayerStartTime = prayerTimes!.fajrStartTime!;
+        currentPrayerEndTime = prayerTimes!.sunrise!;
       } else if (now.isAfter(prayerTimes!.dhuhrStartTime!) &&
           now.isBefore(prayerTimes!.asrStartTime!)) {
         currentPrayer = 'Dhuhr';
+        currentPrayerStartTime = prayerTimes!.dhuhrStartTime!;
+        currentPrayerEndTime = prayerTimes!.asrStartTime!;
       } else if (now.isAfter(prayerTimes!.asrStartTime!) &&
           now.isBefore(prayerTimes!.maghribStartTime!)) {
         currentPrayer = 'Asr';
+        currentPrayerStartTime = prayerTimes!.asrStartTime!;
+        currentPrayerEndTime = prayerTimes!.maghribStartTime!
+            .subtract(const Duration(minutes: 23));
       } else if (now.isAfter(prayerTimes!.maghribStartTime!) &&
           now.isBefore(prayerTimes!.ishaStartTime!)) {
         currentPrayer = 'Maghrib';
+        currentPrayerStartTime = prayerTimes!.maghribStartTime!;
+        currentPrayerEndTime = prayerTimes!.ishaStartTime!;
       } else if (now.isAfter(prayerTimes!.ishaStartTime!)) {
         currentPrayer = 'Isha';
+        currentPrayerStartTime = prayerTimes!.ishaStartTime!;
+        currentPrayerEndTime =
+            prayerTimes!.ishaStartTime!.add(const Duration(hours: 4));
       } else {
         currentPrayer = 'Duha'; // Default to none if no current prayer is found
       }
     }
-
-    print("currentPrayer: $currentPrayer");
   }
 
-  String formatTime(DateTime time) {
-    return DateFormat('hh:mm a').format(time); // Format time as 08:45 PM
+  String getRemainingTime(DateTime endTime) {
+    // Calculate the difference between end time and now
+    Duration remaining = endTime.difference(DateTime.now());
+
+    if (remaining.isNegative) {
+      return "$currentPrayer 00:00:00";
+    }
+    int hours = remaining.inHours;
+    int minutes = remaining.inMinutes.remainder(60);
+    int seconds = remaining.inSeconds.remainder(60);
+
+    // Format the hours and minutes with leading zeroes
+    return "Remaining $currentPrayer \n${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
+  }
+
+  int getTimeDifferenceInHours(DateTime startTime, DateTime endTime) {
+    // Get the difference between endTime and startTime
+    Duration difference = endTime.difference(startTime);
+
+    // Convert the duration to hours as a double value
+
+    print("DDDD: ${difference.inSeconds}");
+    return difference.inSeconds; // 3600 seconds = 1 hour
   }
 
   @override
@@ -294,145 +347,205 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
 
   Widget newDashboardWidget() {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        TimePicker(
-          initTime: _inBedTime,
-          endTime: _outBedTime,
-          disabledRange: DisabledRange(
-            initTime: _disabledInitTime,
-            endTime: _disabledEndTime,
-            disabledRangeColor: Colors.grey,
-            errorColor: Colors.red,
-          ),
-          height: 260.0,
-          width: 260.0,
-          onSelectionChange: _updateLabels,
-          onSelectionEnd: (start, end, isDisableRange) => print(
-              'onSelectionEnd => init : ${start.h}:${start.m}, end : ${end.h}:${end.m}, isDisableRange: $isDisableRange'),
-          primarySectors: _clockTimeFormat.value,
-          secondarySectors: _clockTimeFormat.value * 2,
-          decoration: TimePickerDecoration(
-            baseColor: Color(0xFF1F2633),
-            pickerBaseCirclePadding: 15.0,
-            sweepDecoration: TimePickerSweepDecoration(
-              pickerStrokeWidth: 30.0,
-              pickerColor: _isSleepGoal ? Color(0xFF3CDAF7) : Colors.white,
-              showConnector: true,
-            ),
-            initHandlerDecoration: TimePickerHandlerDecoration(
-              color: Color(0xFF141925),
-              shape: BoxShape.circle,
-              radius: 12.0,
-              icon: Icon(
-                Icons.power_settings_new_outlined,
-                size: 20.0,
-                color: Color(0xFF3CDAF7),
-              ),
-            ),
-            endHandlerDecoration: TimePickerHandlerDecoration(
-              color: Color(0xFF141925),
-              shape: BoxShape.circle,
-              radius: 12.0,
-              icon: Icon(
-                Icons.notifications_active_outlined,
-                size: 20.0,
-                color: Color(0xFF3CDAF7),
-              ),
-            ),
-            primarySectorsDecoration: TimePickerSectorDecoration(
-              color: Colors.white,
-              width: 1.0,
-              size: 4.0,
-              radiusPadding: 25.0,
-            ),
-            secondarySectorsDecoration: TimePickerSectorDecoration(
-              color: Color(0xFF3CDAF7),
-              width: 1.0,
-              size: 2.0,
-              radiusPadding: 25.0,
-            ),
-            clockNumberDecoration: TimePickerClockNumberDecoration(
-              defaultTextColor: Colors.white,
-              defaultFontSize: 12.0,
-              scaleFactor: 2.0,
-              showNumberIndicators: true,
-              clockTimeFormat: _clockTimeFormat,
-              clockIncrementTimeFormat: _clockIncrementTimeFormat,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(62.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '${intl.NumberFormat('00').format(_intervalBedTime.h)}Hr ${intl.NumberFormat('00').format(_intervalBedTime.m)}Min',
-                  style: TextStyle(
-                    fontSize: 14.0,
-                    color: _isSleepGoal ? Color(0xFF3CDAF7) : Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Container(
-          width: 300.0,
+        Align(
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Color(0xFF1F2633),
-            borderRadius: BorderRadius.circular(25.0),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              _isSleepGoal
-                  ? "Above Sleep Goal (>=8) 😇"
-                  : 'below Sleep Goal (<=8) 😴',
-              style: TextStyle(
+          child: TimePicker(
+            initTime: _inBedTime,
+            endTime: _outBedTime,
+            disabledRange: DisabledRange(
+              initTime: _disabledInitTime,
+              endTime: _disabledEndTime,
+              disabledRangeColor: Colors.grey,
+              errorColor: Colors.red,
+            ),
+            height: 260.0,
+            width: 260.0,
+            onSelectionChange: _updateLabels,
+            onSelectionEnd: (start, end, isDisableRange) => print(
+                'onSelectionEnd => init : ${start.h}:${start.m}, end : ${end.h}:${end.m}, isDisableRange: $isDisableRange'),
+            primarySectors: _clockTimeFormat.value,
+            secondarySectors: _clockTimeFormat.value * 2,
+            decoration: TimePickerDecoration(
+              baseColor: const Color(0xFF1F2633),
+              pickerBaseCirclePadding: 15.0,
+              sweepDecoration: TimePickerSweepDecoration(
+                pickerStrokeWidth: 30.0,
+                pickerColor: _isSleepGoal ? Color(0xFF3CDAF7) : Colors.white,
+                showConnector: true,
+              ),
+              initHandlerDecoration: TimePickerHandlerDecoration(
+                color: Color(0xFF141925),
+                shape: BoxShape.circle,
+                radius: 12.0,
+                icon: Icon(
+                  Icons.power_settings_new_outlined,
+                  size: 20.0,
+                  color: Color(0xFF3CDAF7),
+                ),
+              ),
+              endHandlerDecoration: TimePickerHandlerDecoration(
+                color: Color(0xFF141925),
+                shape: BoxShape.circle,
+                radius: 12.0,
+                icon: Icon(
+                  Icons.notifications_active_outlined,
+                  size: 20.0,
+                  color: Color(0xFF3CDAF7),
+                ),
+              ),
+              primarySectorsDecoration: TimePickerSectorDecoration(
                 color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+                width: 1.0,
+                size: 4.0,
+                radiusPadding: 25.0,
+              ),
+              secondarySectorsDecoration: TimePickerSectorDecoration(
+                color: Color(0xFF3CDAF7),
+                width: 1.0,
+                size: 2.0,
+                radiusPadding: 25.0,
+              ),
+              clockNumberDecoration: TimePickerClockNumberDecoration(
+                defaultTextColor: Colors.white,
+                defaultFontSize: 12.0,
+                scaleFactor: 2.0,
+                showNumberIndicators: true,
+                clockTimeFormat: _clockTimeFormat,
+                clockIncrementTimeFormat: _clockIncrementTimeFormat,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(62.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${intl.NumberFormat('00').format(_intervalBedTime.h)}Hr ${intl.NumberFormat('00').format(_intervalBedTime.m)}Min',
+                    style: TextStyle(
+                      fontSize: 14.0,
+                      color: _isSleepGoal ? Color(0xFF3CDAF7) : Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _timeWidget(
-              'BedTime',
-              _inBedTime,
-              Icon(
-                Icons.power_settings_new_outlined,
-                size: 25.0,
-                color: Color(0xFF3CDAF7),
-              ),
-            ),
-            _timeWidget(
-              'WakeUp',
-              _outBedTime,
-              Icon(
-                Icons.notifications_active_outlined,
-                size: 25.0,
-                color: Color(0xFF3CDAF7),
-              ),
-            ),
-          ],
+        SizedBox(
+          height: 30,
         ),
-        Text(
-          validRange == true
-              ? "Working hours ${intl.NumberFormat('00').format(_disabledInitTime.h)}:${intl.NumberFormat('00').format(_disabledInitTime.m)} to ${intl.NumberFormat('00').format(_disabledEndTime.h)}:${intl.NumberFormat('00').format(_disabledEndTime.m)}"
-              : "Please schedule according working time!",
-          style: TextStyle(
-            fontSize: 16.0,
-            color: validRange == true ? Colors.white : Colors.red,
+
+// Example 3
+        CircleAvatar(
+          backgroundImage: const AssetImage("assets/clock_bg.png"),
+          radius: 100,
+          child: SimpleCircularProgressBar(
+            // maxValue: getTimeDifferenceInHours(
+            //         currentPrayerStartTime, currentPrayerEndTime)
+            //     .toDouble(),
+            size: 250,
+            progressStrokeWidth: 20,
+            backStrokeWidth: 5,
+            fullProgressColor: Colors.amber,
+            // animationDuration: getTimeDifferenceInHours(
+            //         currentPrayerStartTime, currentPrayerEndTime)
+            //     .toInt(),
+            valueNotifier: ValueNotifier(getTimeDifferenceInHours(
+                    currentPrayerStartTime, currentPrayerEndTime)
+                .toDouble()),
+            progressColors: const [
+              Colors.blue,
+              Colors.green,
+              Colors.amberAccent,
+              Colors.redAccent,
+            ],
+            backColor: Colors.blueGrey,
+            onGetText: (double value) {
+              return Text(
+                getRemainingTime(currentPrayerEndTime),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+                textAlign: TextAlign.center,
+              );
+            },
           ),
         ),
+        // Container(
+        //   width: 300.0,
+        //   alignment: Alignment.center,
+        //   decoration: BoxDecoration(
+        //     color: Color(0xFF1F2633),
+        //     borderRadius: BorderRadius.circular(25.0),
+        //   ),
+        //   child: Padding(
+        //     padding: const EdgeInsets.all(16.0),
+        //     child: Text(
+        //       _isSleepGoal
+        //           ? "Above Sleep Goal (>=8) 😇"
+        //           : 'below Sleep Goal (<=8) 😴',
+        //       style: TextStyle(
+        //         color: Colors.white,
+        //         fontSize: 18,
+        //         fontWeight: FontWeight.bold,
+        //       ),
+        //     ),
+        //   ),
+        // ),
+        // Row(
+        //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        //   children: [
+        //     _timeWidget(
+        //       'BedTime',
+        //       _inBedTime,
+        //       Icon(
+        //         Icons.power_settings_new_outlined,
+        //         size: 25.0,
+        //         color: Color(0xFF3CDAF7),
+        //       ),
+        //     ),
+        //     _timeWidget(
+        //       'WakeUp',
+        //       _outBedTime,
+        //       Icon(
+        //         Icons.notifications_active_outlined,
+        //         size: 25.0,
+        //         color: Color(0xFF3CDAF7),
+        //       ),
+        //     ),
+        //   ],
+        // ),
+        // Text(
+        //   validRange == true
+        //       ? "Working hours ${intl.NumberFormat('00').format(_disabledInitTime.h)}:${intl.NumberFormat('00').format(_disabledInitTime.m)} to ${intl.NumberFormat('00').format(_disabledEndTime.h)}:${intl.NumberFormat('00').format(_disabledEndTime.m)}"
+        //       : "Please schedule according working time!",
+        //   style: TextStyle(
+        //     fontSize: 16.0,
+        //     color: validRange == true ? Colors.white : Colors.red,
+        //   ),
+        // ),
       ],
     );
+  }
+
+  String formatRemainingTime(Duration duration) {
+    DateTime now = DateTime.now();
+    DateTime endTime = now.add(duration);
+
+    Duration remaining = endTime.difference(now);
+
+    int hours = remaining.inHours;
+    int minutes = remaining.inMinutes.remainder(60);
+    print("formatRemainingTime\n$minutes");
+
+    return "Remaining Time\n${hours.toString().padLeft(2, '0')} Hr ${minutes.toString().padLeft(2, '0')} Min";
   }
 
   void _updateLabels(PickedTime init, PickedTime end, bool? isDisableRange) {
