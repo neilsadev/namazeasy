@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:intl/intl.dart';
+import 'package:namazeasy/presentation/prayers_list.dart';
 import 'package:prayers_times/prayers_times.dart';
 import 'package:quran/quran.dart';
 import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
@@ -224,13 +225,22 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
               ),
               onSelected: (value) {
                 // Handle the selection here
+
+                Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => PrayersList()));
+
                 print('Selected: $value');
               },
               itemBuilder: (BuildContext context) {
-                return {'Theme', 'Notification', 'Sound'}.map((String choice) {
+                return {'Prayers'}.map((String choice) {
                   return PopupMenuItem<String>(
                     value: choice,
-                    child: Text(choice),
+                    child: Row(
+                      children: [
+                        Icon(Icons.bookmark),
+                        Text(choice),
+                      ],
+                    ),
                   );
                 }).toList();
               },
@@ -492,46 +502,6 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
                 color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class PrayerTile extends StatelessWidget {
-  final String title;
-  final String startTime;
-  final String endTime;
-  final bool isCurrent; // Added to indicate if it is the current prayer
-
-  const PrayerTile({
-    required this.title,
-    required this.startTime,
-    required this.endTime,
-    this.isCurrent = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: Colors.white,
-      elevation: 4,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isCurrent
-            ? BorderSide(color: Colors.deepOrange, width: 3)
-            : BorderSide.none, // Golden border for the current prayer
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Text(title,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        subtitle: Text(
-          'Start: $startTime\nEnd: $endTime',
-          style: TextStyle(fontSize: 16, color: Colors.black87),
-        ),
-        leading: Icon(Icons.access_time, color: Colors.black),
-        trailing: Icon(Icons.arrow_forward_ios, color: Colors.black),
       ),
     );
   }
