@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:intl/intl.dart';
+import 'package:namazeasy/notification_service.dart';
 import 'package:namazeasy/presentation/prayers_list.dart';
 import 'package:prayers_times/prayers_times.dart';
 import 'package:quran/quran.dart';
@@ -37,6 +38,8 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
   DateTime currentPrayerEndTime = DateTime.now();
 
   final _deviceSupport = FlutterQiblah.androidDeviceSensorSupport();
+  final PrayerNotificationService _notificationService =
+      PrayerNotificationService();
 
   late Timer _timer;
   String _remainingTime = "";
@@ -52,6 +55,13 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
     _animationController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 500));
     animation = Tween(begin: 0.0, end: 0.0).animate(_animationController!);
+  }
+
+  DateTime _convertTimeToDateTime(String time) {
+    final now = DateTime.now();
+
+    return DateTime(now.year, now.month, now.day, DateTime.parse(time).hour,
+        DateTime.parse(time).minute);
   }
 
   void _startTimer() {
@@ -110,7 +120,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
 
   void _determineCurrentPrayer() {
     DateTime now = DateTime.now();
-    print("currentPrayer: ${prayerTimes!.fajrEndTime}");
+
     if (prayerTimes != null) {
       if (now.isAfter(prayerTimes!.fajrStartTime!) &&
           now.isBefore(prayerTimes!.sunrise!)) {
@@ -141,6 +151,19 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
       } else {
         currentPrayer = 'Duha'; // Default to none if no current prayer is found
       }
+
+      final Map<String, String> _prayerTimes = {
+        'Fajr': DateFormat('hh:mm a').format(prayerTimes!.fajrStartTime!),
+        'Dhuhr': DateFormat('hh:mm a').format(prayerTimes!.dhuhrStartTime!),
+        'Asr': DateFormat('hh:mm a').format(prayerTimes!.asrStartTime!),
+        'Maghrib': DateFormat('hh:mm a').format(prayerTimes!.maghribStartTime!),
+        'Isha': DateFormat('hh:mm a').format(prayerTimes!.ishaStartTime!),
+      };
+      print("_prayerTimes $_prayerTimes");
+      _prayerTimes.forEach((prayerName, time) {
+        DateTime prayerTime = _convertTimeToDateTime(time);
+        _notificationService.schedulePrayerNotification(prayerName, prayerTime);
+      });
     }
   }
 
@@ -227,7 +250,11 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen>
                 // Handle the selection here
 
                 Navigator.push(
-                    context, MaterialPageRoute(builder: (_) => PrayersList()));
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => PrayersList(
+                              currentPrayer: currentPrayer,
+                            )));
 
                 print('Selected: $value');
               },

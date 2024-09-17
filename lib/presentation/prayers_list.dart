@@ -4,7 +4,8 @@ import 'package:prayers_times/prayers_times.dart';
 import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
 
 class PrayersList extends StatefulWidget {
-  const PrayersList({super.key});
+  final String currentPrayer;
+  const PrayersList({super.key, required this.currentPrayer});
 
   @override
   State<PrayersList> createState() => _PrayersListState();
@@ -14,7 +15,6 @@ class _PrayersListState extends State<PrayersList> {
   final List<String> madhabs = ['Hanafi', 'Shafi'];
   String selectedMadhab = 'Hanafi';
   PrayerTimes? prayerTimes;
-  String currentPrayer = '';
 
   @override
   void initState() {
@@ -64,31 +64,31 @@ class _PrayersListState extends State<PrayersList> {
                       title: 'Fajr',
                       startTime: formatTime(prayerTimes!.fajrStartTime!),
                       endTime: formatTime(prayerTimes!.sunrise!),
-                      isCurrent: currentPrayer == 'Fajr',
+                      isCurrent: widget.currentPrayer == 'Fajr',
                     ),
                     PrayerTile(
                       title: 'Dhuhr',
                       startTime: formatTime(prayerTimes!.dhuhrStartTime!),
                       endTime: formatTime(prayerTimes!.asrStartTime!),
-                      isCurrent: currentPrayer == 'Dhuhr',
+                      isCurrent: widget.currentPrayer == 'Dhuhr',
                     ),
                     PrayerTile(
                       title: 'Asr',
                       startTime: formatTime(prayerTimes!.asrStartTime!),
                       endTime: formatTime(prayerTimes!.maghribStartTime!),
-                      isCurrent: currentPrayer == 'Asr',
+                      isCurrent: widget.currentPrayer == 'Asr',
                     ),
                     PrayerTile(
                       title: 'Maghrib',
                       startTime: formatTime(prayerTimes!.maghribStartTime!),
                       endTime: formatTime(prayerTimes!.ishaStartTime!),
-                      isCurrent: currentPrayer == 'Maghrib',
+                      isCurrent: widget.currentPrayer == 'Maghrib',
                     ),
                     PrayerTile(
                       title: 'Isha',
                       startTime: formatTime(prayerTimes!.ishaStartTime!),
                       endTime: 'Midnight',
-                      isCurrent: currentPrayer == 'Isha',
+                      isCurrent: widget.currentPrayer == 'Isha',
                     ),
                   ],
                 ),
@@ -100,7 +100,7 @@ class _PrayersListState extends State<PrayersList> {
   }
 }
 
-class PrayerTile extends StatelessWidget {
+class PrayerTile extends StatefulWidget {
   final String title;
   final String startTime;
   final String endTime;
@@ -114,6 +114,14 @@ class PrayerTile extends StatelessWidget {
   });
 
   @override
+  State<PrayerTile> createState() => _PrayerTileState();
+}
+
+class _PrayerTileState extends State<PrayerTile> {
+  bool _notification = false;
+  bool _alarm = false;
+
+  @override
   Widget build(BuildContext context) {
     return Card(
         color: Colors.white,
@@ -121,12 +129,12 @@ class PrayerTile extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 8),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: isCurrent
+          side: widget.isCurrent
               ? const BorderSide(color: Colors.deepOrange, width: 3)
               : BorderSide.none, // Golden border for the current prayer
         ),
         child: Padding(
-          padding: const EdgeInsets.all(5.0),
+          padding: const EdgeInsets.all(10.0),
           child: Row(
             children: [
               SizedBox(
@@ -152,9 +160,19 @@ class PrayerTile extends StatelessWidget {
                     ],
                     onGetText: (double value) {
                       return Text(
-                        "4",
+                        widget.title == "Fajr"
+                            ? "الفجر"
+                            : widget.title == "Dhuhr"
+                                ? "الظهر"
+                                : widget.title == "Asr"
+                                    ? "العصر"
+                                    : widget.title == "Maghrib"
+                                        ? "المغرب"
+                                        : widget.title == "Isha"
+                                            ? "العشاء"
+                                            : "الصلاة",
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.green,
                         ),
@@ -172,13 +190,42 @@ class PrayerTile extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
+                  Text(widget.title,
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 18)),
                   Text(
-                    'Start: $startTime\nEnd: $endTime',
+                    'Start: ${widget.startTime}\nEnd: ${widget.endTime}',
                     style: const TextStyle(fontSize: 16, color: Colors.black87),
                   ),
+                ],
+              ),
+              Spacer(),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _notification = !_notification;
+                      });
+                      print(_notification);
+                    },
+                    icon: Icon(
+                      _notification
+                          ? Icons.notifications_outlined
+                          : Icons.notifications_off_outlined,
+                    ),
+                  ),
+                  IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _alarm = !_alarm;
+                        });
+                      },
+                      icon: Icon(_alarm
+                          ? Icons.alarm_outlined
+                          : Icons.alarm_off_outlined)),
                 ],
               ),
             ],
